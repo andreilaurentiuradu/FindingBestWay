@@ -10,6 +10,7 @@ typedef struct Node {
 
 node *init_node() {
     node *new = (node *)malloc(sizeof(node));
+    new->next = NULL;
     new->number = 0;
     return new;
 }
@@ -38,6 +39,21 @@ void dfs(graph *g, int index, int vis[]) {
         }
     }
 }
+
+void delete_list(node * start) {
+    if(start != NULL) {
+        delete_list(start->next);
+        free(start);
+    }
+}
+/*void delete_list(graph *g, int index, node * start) {
+    if(g[index].adj_list->number != 0) {
+        delete_list(g, index, start->next);
+        g[index].adj_list->number--;
+        free(start);
+    }
+    // mai ai la final de eliberat pentru ultimul element
+}*/
 int main(int argc, char const *argv[]) {
     FILE *in = fopen("tema3.in", "r");
     FILE *out = fopen("tema3.out", "w");
@@ -169,7 +185,12 @@ int main(int argc, char const *argv[]) {
     free(name);
 
     // mai ai de eliberat memoria pentru graph
+    for(int i = 0; i < n; ++i) {
+        delete_list(g[i].adj_list);
+    }
+    free(g);
 
+    free(vis); //vectorul de vizitati
     fclose(in);
     fclose(out);
 
