@@ -1,59 +1,17 @@
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "structs.h"
 
-typedef struct Node {
-    struct Node *next;
-    int number;
-} node;
+node *init_node();
+int number_of_atraction(char **name, char *s, int n);
+void dfs(graph *g, int index, int vis[], int nr_conex);
+void delete_list(node *start);
+int root(int index, int father[]);
+void link(int a, int b, int father[]);
+int cmp_edge(const void *a, const void *b);
+int cmp(const void * a, const void * b);
 
-node *init_node() {
-    node *new = (node *)malloc(sizeof(node));
-    new->next = NULL;
-    new->number = 0;
-    return new;
-}
-
-typedef struct Graph {
-    node *adj_list;
-} graph;
-
-int number_of_atraction(char **name, char *s, int n) {
-    for (int i = 0; i < n; ++i) {
-        if (strcmp(name[i], s) == 0)  // daca exista deja
-            return i;
-    }
-    return -1;
-}
-
-void dfs(graph *g, int index, int vis[]) {
-    vis[index] = 1;
-    //printf("%d ", index);
-    node *aux = g[index].adj_list;
-    for (int i = 0; i < g[index].adj_list->number; ++i) {
-        aux = aux -> next;
-        if (vis[aux->number] == 0) {
-            //printf("aux-NUmber %d \n", aux->number);
-            dfs(g, aux->number, vis);
-        }
-    }
-}
-
-void delete_list(node * start) {
-    if(start != NULL) {
-        delete_list(start->next);
-        free(start);
-    }
-}
-/*void delete_list(graph *g, int index, node * start) {
-    if(g[index].adj_list->number != 0) {
-        delete_list(g, index, start->next);
-        g[index].adj_list->number--;
-        free(start);
-    }
-    // mai ai la final de eliberat pentru ultimul element
-}*/
 int main(int argc, char const *argv[]) {
     FILE *in = fopen("tema3.in", "r");
     FILE *out = fopen("tema3.out", "w");
@@ -63,10 +21,11 @@ int main(int argc, char const *argv[]) {
     int n, m;
 
     fscanf(in, "%d %d\n", &n, &m);
-    //fprintf(out, "%d %d\n", n, m);
+    // fprintf(out, "%d %d\n", n, m);
 
     // name[i] reprezinta stringul atractiei cu nr i
     char **name = (char **)malloc(n * sizeof(char *));
+    edge *e = (edge *)malloc(m * sizeof(edge));
     char atraction[100];
     int temp_n = 0, cost, index1, index2;
     graph *g = (graph *)malloc(
@@ -94,6 +53,8 @@ int main(int argc, char const *argv[]) {
         }
 
         fscanf(in, "%s ", atraction);
+        fscanf(in, "%d\n", &cost);
+
         index2 = number_of_atraction(name, atraction, temp_n);
         if (index2 == -1) {
             // punem noua atractie;
@@ -115,6 +76,7 @@ int main(int argc, char const *argv[]) {
         // // alocam pentru urmatorul de dupa ultimul element din lista(practic
         // ala de pe NULL)
         aux->next = init_node();
+        aux->next->cost = cost;
         aux->next->number = index2;
         (g[index1].adj_list->number)++;
 
@@ -127,9 +89,14 @@ int main(int argc, char const *argv[]) {
         // // alocam pentru urmatorul de dupa ultimul element din lista(practic
         // ala de pe NULL)
         aux->next = init_node();
+        aux->next->cost = cost;
         aux->next->number = index1;
         (g[index2].adj_list->number)++;
-        fscanf(in, "%d\n", &cost);
+
+        e[i].start = index1;
+        e[i].stop = index2;
+        e[i].cost = cost;
+        e[i].used = 0;
     }
 
     // declaram si initializam vectorul de vizitati
@@ -140,43 +107,68 @@ int main(int argc, char const *argv[]) {
     for (int i = 0; i < n; ++i) {
         if (vis[i] == 0) {
             nr_conex++;
-            //printf("dfs: ");
-            dfs(g, i, vis);
-            //printf("\n");
+            // printf("dfs: ");
+            dfs(g, i, vis, nr_conex);
+            // printf("\n");
         }
     }
+
+    // cerinta 1 a
     fprintf(out, "%d\n", nr_conex);
 
-    //for (int i = 0; i < n; ++i) fprintf(out, "%d %s\n", i, name[i]);
+    // cerinta 1 b
+    // sortam muchiile dupa cost
+
+    qsort(e, m, sizeof(edge), cmp_edge);
+
+    // kruskal
+    // avem nevoie de un vector de tati pentru a crea arborele partial de cost minim
+    int *father = (int *)malloc(n * sizeof(int));
+
+    // for(int i = 0; i < n; ++i)
+    //     printf("%d ", vis[i]);
+    // printf("\n");
+    // initializam fiecare padure disjuncta ca fiind propriul tata
+    for(int i = 0; i < n; ++i)
+        father[i] = i;
+
+    int root1, root2;
+    int *cost_comp = (int *) calloc(nr_conex, sizeof(int));
+    for(int i = 0; i < m; ++i) {
+        root1 = root(e[i].start, father);
+        root2 = root(e[i].stop, father);
+        if(root1 != root2) {
+            link(root1, root2, father);
+            cost_comp[vis[e[i].start] - 1] += e[i].cost;
+        }
+    }
+
+    qsort(cost_comp, nr_conex, sizeof(int), cmp);
+    for(int i = 0; i < nr_conex; ++i)
+        fprintf(out, "%d\n", cost_comp[i]);
+    // for (int i = 0; i < n; ++i) fprintf(out, "%d %s\n", i, name[i]);
 
     // for (int i = 0; i < n; ++i) {
     //     printf("%d g[i].adj: %d\n", i, g[i].adj_list->number);
     // }
 
-    // afisam listele de adiacenta
+    // // afisam listele de adiacenta
     // for (int i = 0; i < n; ++i) {
-    //     // printf("%d: vecini ", i);
+    //     printf("%d: vecini ", i);
     //     aux = g[i].adj_list;
     //     for (int j = 0; j < g[i].adj_list->number; ++j) {
     //         aux = aux->next;
-    //         printf("%d ", aux->number);
+    //         // printf("%d ", aux->number);
+    //         printf("(nr:%d, cost:%d) ", aux->number, aux->cost);
     //     }
     //     printf("\n");
     // }
-
 
     // printf("vis: ");
     // for(int i = 0; i < n; ++i)
     //     printf("%d ", vis[i]);
 
     // printf("\n");
-
-
-
-
-
-
-
 
     // eliberarea memoriei
     for (int i = 0; i < n; ++i) {
@@ -185,12 +177,14 @@ int main(int argc, char const *argv[]) {
     free(name);
 
     // mai ai de eliberat memoria pentru graph
-    for(int i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i) {
         delete_list(g[i].adj_list);
     }
-    free(g);
-
-    free(vis); //vectorul de vizitati
+    free(cost_comp); // costul fiecarei componente conexe
+    free(g); // vectorul de liste de adiacenta
+    free(e); // vectorul de muchii
+    free(vis);  // vectorul de vizitati
+    free(father); // vectorul de tati
     fclose(in);
     fclose(out);
 
