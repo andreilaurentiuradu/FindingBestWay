@@ -3,11 +3,11 @@
 #include <string.h>
 #include "structs.h"
 
-node *init_node() {
+node *init_node(int number, int cost) {
     node *new = (node *)malloc(sizeof(node));
     new->next = NULL;
-    new->number = 0;
-    new->cost = 0;
+    new->number = number;
+    new->cost = cost;
     return new;
 }
 
@@ -63,4 +63,12 @@ int cmp_edge(const void *a, const void *b) {
 
 int cmp(const void * a, const void * b) {
    return ( *(int*)a - *(int*)b );
+}
+
+void add_location(char **name, int index, char *atraction) {
+    // punem noua atractie;
+                name[index] =
+                    (char *)malloc((strlen(atraction) + 1) * sizeof(char));
+                strcpy(name[index], atraction);
+
 }
