@@ -31,11 +31,18 @@ void selection_sort(int index[], int n, int dist[], int depths[]) {
         }
     }
 }
-void dijkstra(char **name, graph *g, int n, int start, int stop, int depths[]) {
+void dijkstra(FILE *out, char **name, graph *g, int depths[], int n, int start, int stop, int weight) {
     int *in_queue = (int *)calloc(n, sizeof(int));
     int *queue = (int *)calloc(n, sizeof(int));
     int pos_queue = 0;
     int *dist = (int *)malloc(n * sizeof(int));
+    int *father = (int *)malloc(n * sizeof(int));
+    int *son = (int *)malloc(n * sizeof(int));
+
+    for(int i = 0; i < n; ++i) {
+        father[i] = i;
+    }
+
     for (int i = 0; i < n; ++i) {
         dist[i] = INFINIT;
     }
@@ -60,7 +67,7 @@ void dijkstra(char **name, graph *g, int n, int start, int stop, int depths[]) {
             if (actual_score > new_score) {
                 // actualizam distanta
                 dist[neigh->index] = dist[current] + neigh->cost;
-
+                father[neigh->index] = current;
                 // daca nu e in coada
                 if (in_queue[neigh->index] == 0) {
                     in_queue[neigh->index] = 1;  // il adaugam
@@ -74,7 +81,35 @@ void dijkstra(char **name, graph *g, int n, int start, int stop, int depths[]) {
 
     //for (int i = 0; i < n; ++i) printf("name: %s %d\n", name[i], dist[i]);
     //printf("\n");
-    printf("stop_dist:%d\n", dist[stop]);
+    int total_cost = dist[stop];
+
+
+    son[stop] = -1;
+    while(stop != start){
+        // printf("index %d\n", stop);
+        son[father[stop]] = stop;
+        stop = father[stop];
+    }
+
+    // printf("\n");
+    int depthest = INFINIT;
+
+    fprintf(out, "%s ", name[start]);
+    start = son[start];
+
+    while(son[start] != -1){
+        if(depthest > depths[start])
+            depthest = depths[start];
+        fprintf(out, "%s ", name[start]);
+        start = son[start];
+    }
+    fprintf(out, " %s\n", name[start]);
+    fprintf(out, "%d\n", total_cost);
+    fprintf(out, "%d\n", depthest);
+    fprintf(out, "%d", weight / depthest);
+
+    free(father);
+    free(son);
     free(queue);
     free(dist);
     free(in_queue);
@@ -292,10 +327,14 @@ int main(int argc, char const *argv[]) {
 
         if (ok) {
             // aplicam dijkstra pe baza scorului
-            dijkstra(name, g, n, island_index, ship_index, depths);
+            dijkstra(out, name, g, depths, n, island_index, ship_index, weight);
         }
         // eliberarea memoriei
         free(depths);  // vectorul de adancimi
+
+        // for(int i = 0; i < n; ++i) {
+        //     printf("i: %d name: %s\n", i, name[i]);
+        // }
     }
 
     // eliberam memoria de la nume
