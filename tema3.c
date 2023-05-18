@@ -3,16 +3,19 @@
 #include <string.h>
 
 #include "structs.h"
+#define INFINIT 1000000000
 
 node *init_node(int number, int cost);
-int number_of_atraction(char **name, char *s, int n);
+int number_of_location(char **name, char *s, int n);
 void dfs(graph *g, int index, int vis[], int nr_conex);
 void delete_list(node *start);
 int root(int index, int father[]);
 void link(int a, int b, int father[]);
 int cmp_edge(const void *a, const void *b);
 int cmp(const void *a, const void *b);
-void add_location(char **name, int index, char *atraction);
+void add_location(char **name, int index, char *location);
+
+int dijkstra(graph *g, int start, int vis[]) { return 0; }
 
 int main(int argc, char const *argv[]) {
     FILE *in = fopen("tema3.in", "r");
@@ -24,10 +27,13 @@ int main(int argc, char const *argv[]) {
 
     fscanf(in, "%d %d\n", &n, &m);
 
+    // declaram si initializam vectorul de vizitati
+    int *vis = (int *)calloc(n, sizeof(int));
+
     // name[i] reprezinta stringul atractiei cu nr i
     char **name = (char **)malloc(n * sizeof(char *));
 
-    char atraction[100];
+    char location[100];
     int cost;  // il facem float pt cerinta 2
     int temp_n = 0, index1, index2;
     graph *g = (graph *)malloc(
@@ -45,24 +51,24 @@ int main(int argc, char const *argv[]) {
         edge *e = (edge *)malloc(m * sizeof(edge));
 
         for (int i = 0; i < m; ++i) {
-            fscanf(in, "%s ", atraction);
-            index1 = number_of_atraction(name, atraction, temp_n);
+            fscanf(in, "%s ", location);
+            index1 = number_of_location(name, location, temp_n);
             if (index1 == -1) {
                 // indexul de acum
                 index1 = temp_n;
-                add_location(name, index1, atraction);
+                add_location(name, index1, location);
                 // crestem nr de atractii citite pana atunci
                 temp_n++;
             }
 
-            fscanf(in, "%s ", atraction);
+            fscanf(in, "%s ", location);
             fscanf(in, "%d\n", &cost);
 
-            index2 = number_of_atraction(name, atraction, temp_n);
+            index2 = number_of_location(name, location, temp_n);
             if (index2 == -1) {
                 // index2
                 index2 = temp_n;
-                add_location(name, index2, atraction);
+                add_location(name, index2, location);
                 // crestem nr de atractii citite pana atunci
                 temp_n++;
             }
@@ -93,9 +99,6 @@ int main(int argc, char const *argv[]) {
             e[i].stop = index2;
             e[i].cost = cost;
         }
-
-        // declaram si initializam vectorul de vizitati
-        int *vis = (int *)calloc(n, sizeof(int));
 
         // facem dfs pe fiecare nod nevizitat
         int nr_conex = 0;
@@ -145,7 +148,6 @@ int main(int argc, char const *argv[]) {
 
         free(cost_comp);  // costul fiecarei componente conexe
         free(e);          // vectorul de muchii
-        free(vis);        // vectorul de vizitati
         free(father);     // vectorul de tati
     }
 
@@ -154,24 +156,24 @@ int main(int argc, char const *argv[]) {
         int *depths = (int *)malloc(n * sizeof(int));
 
         for (int i = 0; i < m; ++i) {
-            fscanf(in, "%s ", atraction);
-            index1 = number_of_atraction(name, atraction, temp_n);
+            fscanf(in, "%s ", location);
+            index1 = number_of_location(name, location, temp_n);
             if (index1 == -1) {
                 // indexul de acum
                 index1 = temp_n;
-                add_location(name, index1, atraction);
+                add_location(name, index1, location);
                 // crestem nr de atractii citite pana atunci
                 temp_n++;
             }
 
-            fscanf(in, "%s ", atraction);
+            fscanf(in, "%s ", location);
             fscanf(in, "%d\n", &cost);
 
-            index2 = number_of_atraction(name, atraction, temp_n);
+            index2 = number_of_location(name, location, temp_n);
             if (index2 == -1) {
                 // index2
                 index2 = temp_n;
-                add_location(name, index2, atraction);
+                add_location(name, index2, location);
                 // crestem nr de atractii citite pana atunci
                 temp_n++;
             }
@@ -188,11 +190,43 @@ int main(int argc, char const *argv[]) {
             (g[index1].adj_list->number)++;
         }
 
+        for (int i = 0; i < n; ++i) {
+            fscanf(in, "%s", location);
+            index1 = number_of_location(name, location, n);
+            fscanf(in, "%d\n", &depths[index1]);
+            // printf("index %d, location %s, depths %d\n", index1, location,
+            // depths[index1]);
+        }
 
+        int weight;
+        fscanf(in, "%d", &weight);
+
+        // facem dfs pe fiecare nod nevizitat
+        int island_index = number_of_location(name, "Insula", n);
+        int ship_index = number_of_location(name, "Corabie", n);
+
+        // verificam daca putem ajunge cu un dfs de la corabie la insula si reciproc
+        dfs(g, ship_index, vis, 1);
+        if(vis[ship_index] != vis[island_index])
+            fprintf(out, "Echipajul nu poate ajunge la insula\n");
+
+        memset(vis, 0, sizeof(int));
+        dfs(g, island_index, vis, 1);
+        if(vis[island_index] != vis[ship_index])
+            fprintf(out, "Echipajul nu poate transporta comoara inapoi la corabie\n");
+
+        // for (int i = 0; i < n; ++i) {
+        //     if (vis[i] == 0) {
+        //         nr_conex++;
+        //         // printf("dfs: ");
+        //         dfs(g, i, vis, nr_conex);
+        //         // printf("\n");
+        //     }
+        // }
+        // aplicam dijkstra pe baza scorului
         // eliberarea memoriei
         free(depths);  // vectorul de adancimi
-
-        }
+    }
 
     // eliberam memoria de la nume
     for (int i = 0; i < n; ++i) {
@@ -201,12 +235,12 @@ int main(int argc, char const *argv[]) {
     free(name);
 
     // mai ai de eliberat memoria pentru graph
-        for (int i = 0; i < n; ++i) {
-            delete_list(g[i].adj_list);
-        }
+    for (int i = 0; i < n; ++i) {
+        delete_list(g[i].adj_list);
+    }
 
-        free(g);       // vectorul de liste de adiacenta
-
+    free(g);  // vectorul de liste de adiacenta
+    free(vis);        // vectorul de vizitati
 
     fclose(in);
     fclose(out);
