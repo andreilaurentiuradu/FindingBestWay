@@ -39,14 +39,7 @@ void delete_list(node * start) {
         free(start);
     }
 }
-/*void delete_list(graph *g, int index, node * start) {
-    if(g[index].adj_list->index != 0) {
-        delete_list(g, index, start->next);
-        g[index].adj_list->index--;
-        free(start);
-    }
-    // mai ai la final de eliberat pentru ultimul element
-}*/
+
 
 
 int root(int index, int father[]) {
@@ -80,12 +73,10 @@ void swap(int *a, int *b) {
     *b = aux;
 }
 
-void selection_sort(int index[], int n, int dist[], int depths[]) {
+void selection_sort(int index[], int n, float score[]) {
     for (int i = 0; i < n; ++i) {
         for (int j = i + 1; j < n; ++j) {
-            if (((float)dist[index[i]]) / depths[index[i]] > ((float)dist[index[j]]) / depths[index[j]])
-                // / depths[index[i]]
-                // / depths[index[j]]
+            if (score[index[i]] > score[index[j]])
                 swap(&index[i], &index[j]);
         }
     }
@@ -98,18 +89,20 @@ void dijkstra(FILE *out, char **name, graph *g, int depths[], int n, int start, 
     int *dist = (int *)malloc(n * sizeof(int));
     int *father = (int *)malloc(n * sizeof(int));
     int *son = (int *)malloc(n * sizeof(int));
-
+    float *score = (float *)malloc(n * sizeof(float));
     for(int i = 0; i < n; ++i) {
         father[i] = i;
     }
 
     for (int i = 0; i < n; ++i) {
         dist[i] = INFINIT;
+        score[i] = INFINIT;
     }
     // punem nodul de start in coada si actualizam distanta
     dist[start] = 0;
     queue[pos_queue] = start;
     in_queue[start] = 1;
+    score[start] = 0;
     int current;
     node *neigh;
     while (pos_queue != -1) {
@@ -118,13 +111,13 @@ void dijkstra(FILE *out, char **name, graph *g, int depths[], int n, int start, 
         pos_queue--;
         in_queue[current] = 0;
         neigh = g[current].adj_list;
+
         for (int i = 0; i < g[current].adj_list->index; ++i) {
             neigh = neigh->next;
             float actual_score =
-                (float)(dist[neigh->index]) / depths[neigh->index];
-            float new_score = (float)(dist[current] +
-                                      neigh->cost) / depths[neigh->index];
-            if (actual_score > new_score) {
+                ((float)(neigh->cost)) / depths[neigh->index];
+            if (score[neigh->index] > score[current] + actual_score) {
+                score[neigh->index] = score[current] + actual_score;
                 // actualizam distanta
                 dist[neigh->index] = dist[current] + neigh->cost;
                 father[neigh->index] = current;
@@ -133,7 +126,7 @@ void dijkstra(FILE *out, char **name, graph *g, int depths[], int n, int start, 
                     in_queue[neigh->index] = 1;  // il adaugam
                     pos_queue++;
                     queue[pos_queue] = neigh->index;
-                    selection_sort(queue, pos_queue + 1, dist, depths);
+                    selection_sort(queue, pos_queue + 1, score);
                 }
             }
         }
@@ -142,7 +135,7 @@ void dijkstra(FILE *out, char **name, graph *g, int depths[], int n, int start, 
     //for (int i = 0; i < n; ++i) printf("name: %s %d\n", name[i], dist[i]);
     //printf("\n");
     int total_cost = dist[stop];
-
+    // printf("total_cost %d\n", total_cost);
 
     son[stop] = -1;
     while(stop != start){
@@ -168,6 +161,7 @@ void dijkstra(FILE *out, char **name, graph *g, int depths[], int n, int start, 
     fprintf(out, "%d\n", depthest);
     fprintf(out, "%d", weight / depthest);
 
+    free(score);
     free(father);
     free(son);
     free(queue);
