@@ -2,16 +2,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include "structs.h"
+#define INFINIT 1000000000
 
-node *init_node(int number, int cost) {
+node *init_node(int index, int cost) {
     node *new = (node *)malloc(sizeof(node));
     new->next = NULL;
-    new->number = number;
+    new->index = index;
     new->cost = cost;
     return new;
 }
 
-int number_of_atraction(char **name, char *s, int n) {
+int index_of_location(char **name, char *s, int n) {
     for (int i = 0; i < n; ++i) {
         if (strcmp(name[i], s) == 0)  // daca exista deja
             return i;
@@ -23,11 +24,11 @@ void dfs(graph *g, int index, int vis[], int nr_conex) {
     vis[index] = nr_conex;
     //printf("%d ", index);
     node *aux = g[index].adj_list;
-    for (int i = 0; i < g[index].adj_list->number; ++i) {
+    for (int i = 0; i < g[index].adj_list->index; ++i) {
         aux = aux -> next;
-        if (vis[aux->number] == 0) {
-            //printf("aux-NUmber %d \n", aux->number);
-            dfs(g, aux->number, vis, nr_conex);
+        if (vis[aux->index] == 0) {
+            //printf("aux-index %d \n", aux->index);
+            dfs(g, aux->index, vis, nr_conex);
         }
     }
 }
@@ -39,9 +40,9 @@ void delete_list(node * start) {
     }
 }
 /*void delete_list(graph *g, int index, node * start) {
-    if(g[index].adj_list->number != 0) {
+    if(g[index].adj_list->index != 0) {
         delete_list(g, index, start->next);
-        g[index].adj_list->number--;
+        g[index].adj_list->index--;
         free(start);
     }
     // mai ai la final de eliberat pentru ultimul element
@@ -65,10 +66,111 @@ int cmp(const void * a, const void * b) {
    return ( *(int*)a - *(int*)b );
 }
 
-void add_location(char **name, int index, char *atraction) {
+void add_location(char **name, int index, char *location) {
     // punem noua atractie;
                 name[index] =
-                    (char *)malloc((strlen(atraction) + 1) * sizeof(char));
-                strcpy(name[index], atraction);
+                    (char *)malloc((strlen(location) + 1) * sizeof(char));
+                strcpy(name[index], location);
 
+}
+
+void swap(int *a, int *b) {
+    int aux = *a;
+    *a = *b;
+    *b = aux;
+}
+
+void selection_sort(int index[], int n, int dist[], int depths[]) {
+    for (int i = 0; i < n; ++i) {
+        for (int j = i + 1; j < n; ++j) {
+            if (((float)dist[index[i]]) / depths[index[i]] > ((float)dist[index[j]]) / depths[index[j]])
+                // / depths[index[i]]
+                // / depths[index[j]]
+                swap(&index[i], &index[j]);
+        }
+    }
+}
+
+void dijkstra(FILE *out, char **name, graph *g, int depths[], int n, int start, int stop, int weight) {
+    int *in_queue = (int *)calloc(n, sizeof(int));
+    int *queue = (int *)calloc(n, sizeof(int));
+    int pos_queue = 0;
+    int *dist = (int *)malloc(n * sizeof(int));
+    int *father = (int *)malloc(n * sizeof(int));
+    int *son = (int *)malloc(n * sizeof(int));
+
+    for(int i = 0; i < n; ++i) {
+        father[i] = i;
+    }
+
+    for (int i = 0; i < n; ++i) {
+        dist[i] = INFINIT;
+    }
+    // punem nodul de start in coada si actualizam distanta
+    dist[start] = 0;
+    queue[pos_queue] = start;
+    in_queue[start] = 1;
+    int current;
+    node *neigh;
+    while (pos_queue != -1) {
+        // scoatem un nod din coada
+        current = queue[pos_queue];
+        pos_queue--;
+        in_queue[current] = 0;
+        neigh = g[current].adj_list;
+        for (int i = 0; i < g[current].adj_list->index; ++i) {
+            neigh = neigh->next;
+            float actual_score =
+                (float)(dist[neigh->index]) / depths[neigh->index];
+            float new_score = (float)(dist[current] +
+                                      neigh->cost) / depths[neigh->index];
+            if (actual_score > new_score) {
+                // actualizam distanta
+                dist[neigh->index] = dist[current] + neigh->cost;
+                father[neigh->index] = current;
+                // daca nu e in coada
+                if (in_queue[neigh->index] == 0) {
+                    in_queue[neigh->index] = 1;  // il adaugam
+                    pos_queue++;
+                    queue[pos_queue] = neigh->index;
+                    selection_sort(queue, pos_queue + 1, dist, depths);
+                }
+            }
+        }
+    }
+
+    //for (int i = 0; i < n; ++i) printf("name: %s %d\n", name[i], dist[i]);
+    //printf("\n");
+    int total_cost = dist[stop];
+
+
+    son[stop] = -1;
+    while(stop != start){
+        // printf("index %d\n", stop);
+        son[father[stop]] = stop;
+        stop = father[stop];
+    }
+
+    // printf("\n");
+    int depthest = INFINIT;
+
+    fprintf(out, "%s ", name[start]);
+    start = son[start];
+
+    while(son[start] != -1){
+        if(depthest > depths[start])
+            depthest = depths[start];
+        fprintf(out, "%s ", name[start]);
+        start = son[start];
+    }
+    fprintf(out, " %s\n", name[start]);
+    fprintf(out, "%d\n", total_cost);
+    fprintf(out, "%d\n", depthest);
+    fprintf(out, "%d", weight / depthest);
+
+    free(father);
+    free(son);
+    free(queue);
+    free(dist);
+    free(in_queue);
 }
