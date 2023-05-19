@@ -2,15 +2,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct Node {
-    struct Node *next;
-    int number, cost;
-} node;
+// datele unei locatii
+typedef struct Place {
+    struct Place *next;
+    int index, cost;
+} place;
 
-typedef struct Graph {
-    node *adj_list;
-} graph;
+// harta
+typedef struct Map {
+    place *adj_list;
+} map;
 
-typedef struct Edge {
-    int cost, start, stop, used;
-} edge;
+// drumurile dintre 2 locatii vecine
+typedef struct Way {
+    int cost, start, stop;
+} way;
+
