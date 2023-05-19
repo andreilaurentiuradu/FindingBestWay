@@ -1,3 +1,4 @@
+/*RADU Andrei-Laurentiu - 312CC*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,8 +8,8 @@
 
 // alocam memorie si initializam un nod din listele de adiacenta
 // ce vor retine graful
-node *init_node(int index, int cost) {
-    node *new = (node *)malloc(sizeof(node));
+place *init_place(int index, int cost) {
+    place *new = (place *)malloc(sizeof(place));
     new->next = NULL;
     new->index = index;
     new->cost = cost;
@@ -26,12 +27,12 @@ int index_of_location(char **name, char *s, int n) {
 
 // facem o parcurgere in adancime pe graful ce reprezinta harta
 
-void dfs(graph *g, int index, int vis[], int nr_conex) {
+void dfs(map *g, int index, int vis[], int nr_conex) {
     // marcam in vectorul de vizitati componenta din care face parte nodul
     vis[index] = nr_conex;
 
     // folosim un nod auxiliar pentru a parcurge lista vecinilor nodului curent
-    node *aux = g[index].adj_list;
+    place *aux = g[index].adj_list;
     for (int i = 0; i < g[index].adj_list->index; ++i) {
         aux = aux->next;
 
@@ -43,7 +44,7 @@ void dfs(graph *g, int index, int vis[], int nr_conex) {
 }
 
 // eliberam memoria ocupata de o lista primind ca parametru capul ei
-void delete_list(node *start) {
+void delete_list(place *start) {
     if (start != NULL) {
         delete_list(start->next);
         free(start);
@@ -60,8 +61,8 @@ int root(int index, int father[]) {
 void link(int a, int b, int father[]) { father[a] = b; }
 
 // comparam costul a doua muchii
-int cmp_edge(const void *a, const void *b) {
-    return (((edge *)a)->cost - ((edge *)b)->cost);
+int cmp_way(const void *a, const void *b) {
+    return (((way *)a)->cost - ((way *)b)->cost);
 }
 
 // comparam 2 numare intregi
@@ -93,7 +94,7 @@ void selection_sort(int index[], int n, float score[]) {
 
 // aplicam algoritmul lui Dijkstra pentru a determina drumul optim pe care
 // trebuie sa il parcurga echipajul de la corabie la insula
-void dijkstra(FILE *out, char **name, graph *g, int depths[], int n, int start,
+void dijkstra(FILE *out, char **name, map *g, int depths[], int n, int start,
               int stop, int weight) {
     // containerul cu nodurile pentru care s-a gasit un scor mai bun
     int *better_score = (int *)calloc(n, sizeof(int));
@@ -142,7 +143,7 @@ void dijkstra(FILE *out, char **name, graph *g, int depths[], int n, int start,
     score[start] = 0;
 
     int current;
-    node *neigh;
+    place *neigh;
     float actual_score;
 
     // cat timp existe elemente "nescoase" din container
